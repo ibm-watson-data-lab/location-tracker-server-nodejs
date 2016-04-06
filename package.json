@@ -37,6 +37,7 @@
     "dotenv": "^0.5.1",
     "express": "^4.11.1",
     "http-post": "^0.1.1",
-    "http-proxy": "^1.8.1"
+    "http-proxy": "^1.8.1",
+    "node-uuid": "^1.4.7"
   }
 }

@@ -18,6 +18,10 @@ var app = express();
 app.use(cookieParser());
 
 (function(app) {
+  //var cipher = crypto.createCipher(algorithm, req.body.password);
+  //var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
+  //encryptedApiPassword += cipher.final('hex');
+
   if (process.env.VCAP_SERVICES) {
     var vcapServices = JSON.parse(process.env.VCAP_SERVICES);
     app.set('vcapServices', vcapServices);
@@ -27,7 +31,8 @@ app.use(cookieParser());
         app.set('cloudant-location-tracker-db', cloudant({
           username: service.credentials.username,
           password: service.credentials.password,
-          account: service.credentials.username
+          account: service.credentials.username,
+          url: service.credentials.url
         }));
       }
     }

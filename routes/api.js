@@ -1,5 +1,6 @@
 // Licensed under the Apache 2.0 License. See footer for details.
 
+var uuid = require('node-uuid');
 var crypto = require('crypto'),
     algorithm = 'AES-256-CTR';
 
@@ -16,46 +17,74 @@ module.exports.putUser = function(req, res) {
     // TOOD: Better handle this error
     return res.sendStatus(400);
   }
-  var usersDb = cloudantService.use('users');
-  cloudantService.generate_api_key(function(err, api) {
-    if (!err) {
-      var locationTrackerDb = cloudantService.use('location-tracker');
-      locationTrackerDb.get_security(function(err, result) {
-        var security = result.cloudant;
-        security[api.key] = ['_reader', '_writer'];
-        locationTrackerDb.set_security(security, function(err, result) {
-          if (!err) {
-            var cipher = crypto.createCipher(algorithm, req.body.password);
-            var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
-            encryptedApiPassword += cipher.final('hex');
-            var user = {
-              _id: req.params.id,
-              name: req.body.name,
-              api_key: api.key,
-              api_password: encryptedApiPassword
-            };
-            usersDb.insert(user, user._id, function(err, body) {
-              if (!err) {
-                res.status(201).json({
-                  ok: true,
-                  id: user._id,
-                  rev: body.rev
-                });
-              } else {
+
+  // TODO: check if user exists
+
+  // generate api key
+  // create a database for this user
+  var dbName = 'location-tracker-' + uuid.v4();
+  cloudantService.db.create(dbName, function(err, body) {
+    if (err) {
+      console.error('Error creating location tracker database');
+      res.status(500).json({error: 'Internal Server Error'});
+    }
+    else {
+
+      cloudantService.generate_api_key(function(err, api) {
+        if (err) {
+          console.error('Error generating API Key');
+          res.status(500).json({error: 'Internal Server Error'});
+        }
+        else {
+
+          // TODO: add indexes?
+
+          // grant access to api key to newly created database
+          var locationTrackerDb = cloudantService.use(dbName);
+          locationTrackerDb.get_security(function(err, result) {
+            var security = result.cloudant;
+            if (! security) {
+              security = {};
+            }
+            security[api.key] = ['_reader', '_writer'];
+            locationTrackerDb.set_security(security, function(err, result) {
+              if (err) {
                 console.error(err);
                 res.status(500).json({error: 'Internal Server Error'});
               }
+              else {
+
+                // save user in database
+                var cipher = crypto.createCipher(algorithm, req.body.password);
+                var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
+                encryptedApiPassword += cipher.final('hex');
+                var user = {
+                  _id: req.params.id,
+                  name: req.body.name,
+                  api_key: api.key,
+                  api_password: encryptedApiPassword,
+                  location_db: dbName
+                };
+                var usersDb = cloudantService.use('users');
+                usersDb.insert(user, user._id, function (err, body) {
+                  if (err) {
+                    console.error(err);
+                    res.status(500).json({error: 'Internal Server Error'});
+                  }
+                  else {
+                    res.status(201).json({
+                      ok: true,
+                      id: user._id,
+                      rev: body.rev
+                    });
+                  }
+                });
+              }
             });
-          } else {
-            console.error(err);
-            res.status(500).json({error: 'Internal Server Error'});
-          }
-        });
+          });
+        }
       });
-     } else {
-        console.error(err);
-        res.status(500).json({error: 'Internal Server Error'});
-     }
+    }
   });
 };
 
@@ -71,8 +100,11 @@ module.exports.postSession = function(req, res) {
   var usersDb = cloudantService.use('users');
   usersDb.get('org.couchdb.user:' + req.body.name, function(err, body) {
     if (!err) {
+      var apiKey = body.api_key;
+      var apiPassword = body.api_password;
+      var locationDb = body.location_db;
       var decipher = crypto.createDecipher(algorithm, req.body.password);
-      var decryptedApiPassword = decipher.update(body.api_password, 'hex', 'utf8');
+      var decryptedApiPassword = decipher.update(apiPassword, 'hex', 'utf8');
       decryptedApiPassword += decipher.final('utf8');
       cloudantService.auth(body.api_key, decryptedApiPassword, function(err, body, headers) {
         if (!err) {
@@ -113,6 +145,9 @@ module.exports.postSession = function(req, res) {
           res.json({
             ok: true,
             name: req.body.name,
+            api_key: apiKey,
+            api_password: decryptedApiPassword,
+            location_db: locationDb,
             roles: body.roles
           });
         } else {
@@ -154,12 +189,18 @@ module.exports.getSession = function(req, res) {
           api_key: body.userCtx.name
         },
         fields: [
-          'name'
+          'name',
+          'api_key',
+          'api_password',
+          'location_db'
         ]
       }, function(err, result) {
         if (!err) {
           if (result.docs.length > 0) {
             body.userCtx.name = result.docs[0].name;
+            body.userCtx.api_key = result.docs[0].api_key;
+            body.userCtx.api_password = result.docs[0].api_password;
+            body.userCtx.location_db = result.docs[0].location_db;
             res.json(body);
           } else {
             res.json(body);
