@@ -1,8 +1,9 @@
 // Licensed under the Apache 2.0 License. See footer for details.
 
-var uuid = require('node-uuid');
 var crypto = require('crypto'),
     algorithm = 'AES-256-CTR';
+var request = require('request');
+var uuid = require('node-uuid');
 
 module.exports.putUser = function(req, res) {
   var app = req.app;
@@ -72,10 +73,21 @@ module.exports.putUser = function(req, res) {
                     res.status(500).json({error: 'Internal Server Error'});
                   }
                   else {
-                    res.status(201).json({
-                      ok: true,
-                      id: user._id,
-                      rev: body.rev
+                    var url = cloudantService.config.url + "/_replicate";
+                    var source = cloudantService.config.url + "/" + dbName;
+                    var target = cloudantService.config.url + "/location-tracker-all";
+                    setupReplication(url, source, target, function(err, response, body) {
+                      if (err) {
+                        console.error(err);
+                        res.status(500).json({error: 'Internal Server Error'});
+                      }
+                      else {
+                        res.status(201).json({
+                          ok: true,
+                          id: user._id,
+                          rev: body.rev
+                        });
+                      }
                     });
                   }
                 });
@@ -86,6 +98,20 @@ module.exports.putUser = function(req, res) {
       });
     }
   });
+};
+
+var setupReplication = function(url, source, target, callback) {
+  var json = JSON.stringify({
+    source: source,
+    target: target,
+    continuous: true
+  });
+  var requestOptions = {
+    headers: {'Content-Type' : 'application/json'},
+    uri : url,
+    body: json
+  };
+  request.post(requestOptions, callback);
 };
 
 module.exports.postSession = function(req, res) {

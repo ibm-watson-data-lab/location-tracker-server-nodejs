@@ -10,7 +10,8 @@ var express = require('express'),
     httpProxy = require('http-proxy'),
     url = require('url'),
     bodyParser = require('body-parser'),
-    api = require('./routes/api');
+    api = require('./routes/api'),
+    follow = require('follow');
 
 dotenv.load();
 
@@ -80,6 +81,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
+
+// SUBSCRIBE TO ALL LOCATIONS
+follow({db:app.get('cloudant-location-tracker-db').config.url + "/location-tracker-all", include_docs:true}, function(error, change) {
+  if(!error) {
+    console.log("Change " + change.seq + " has " + Object.keys(change.doc).length + " fields");
+    console.log("Change DOC: " + JSON.stringify(change.doc))
+  }
+})
 
 //-------------------------------------------------------------------------------
 // Copyright IBM Corp. 2015
