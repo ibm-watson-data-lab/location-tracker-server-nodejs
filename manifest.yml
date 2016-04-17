@@ -6,6 +6,6 @@ declared-services:
 applications:
 - name: cloudant-location-tracker
   memory: 128M
-  host: cloudant-location-tracker-${random-word}
+  host: locationtracker2
   services:
   - cloudant-location-tracker-db

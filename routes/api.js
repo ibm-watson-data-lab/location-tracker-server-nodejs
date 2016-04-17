@@ -4,6 +4,7 @@ var crypto = require('crypto'),
     algorithm = 'AES-256-CTR';
 var request = require('request');
 var uuid = require('node-uuid');
+var Q = require("q")
 
 module.exports.putUser = function(req, res) {
   var app = req.app;
@@ -21,86 +22,143 @@ module.exports.putUser = function(req, res) {
 
   // TODO: check if user exists
 
-  // generate api key
   // create a database for this user
   var dbName = 'location-tracker-' + uuid.v4();
+  createDatabase(cloudantService, dbName)
+      .then(function(body) {
+        return generateApiKey(cloudantService);
+      })
+      .then(function(api) {
+        return applyApiKey(cloudantService, dbName, api);
+      })
+      .then(function(api) {
+        return saveUser(req, cloudantService, dbName, api);
+      })
+      .then(function(user) {
+        return setupReplication(cloudantService, dbName, user);
+      })
+      .then(function(user) {
+        res.status(201).json({
+          ok: true,
+          id: user._id,
+          rev: user.rev
+        });
+        }, function(err) {
+          console.error("Error registering user.", err.toString());
+          res.status(500).json({error: 'Internal Server Error'});
+        });
+};
+
+/**
+ * This function creates a new location database for a user.
+ * This function returns a promise that can be executed in a promise chain.
+ * @param cloudantService
+ * @param dbName
+ */
+var createDatabase = function(cloudantService, dbName) {
+  var deferred = Q.defer();
   cloudantService.db.create(dbName, function(err, body) {
     if (err) {
-      console.error('Error creating location tracker database');
-      res.status(500).json({error: 'Internal Server Error'});
+      deferred.reject(err);
     }
     else {
+      deferred.resolve(body);
+    }
+  });
+  return deferred.promise;
+};
 
-      cloudantService.generate_api_key(function(err, api) {
+/**
+ * This function generates a new database API key.
+ * This function returns a promise that can be executed in a promise chain.
+ * @param cloudantService
+ */
+var generateApiKey = function(cloudantService) {
+  var deferred = Q.defer();
+  cloudantService.generate_api_key(function(err, api) {
+    if (err) {
+      deferred.reject(err);
+    }
+    else {
+      deferred.resolve(api);
+    }
+  });
+  return deferred.promise;
+};
+
+var applyApiKey = function(cloudantService, dbName, api) {
+  var deferred = Q.defer();
+  var locationTrackerDb = cloudantService.use(dbName);
+  locationTrackerDb.get_security(function(err, result) {
+    if (err) {
+      deferred.reject(err);
+    }
+    else {
+      var security = result.cloudant;
+      if (!security) {
+        security = {};
+      }
+      security[api.key] = ['_reader', '_writer'];
+      locationTrackerDb.set_security(security, function (err, result) {
         if (err) {
-          console.error('Error generating API Key');
-          res.status(500).json({error: 'Internal Server Error'});
+          deferred.reject(err);
         }
         else {
-
-          // TODO: add indexes?
-
-          // grant access to api key to newly created database
-          var locationTrackerDb = cloudantService.use(dbName);
-          locationTrackerDb.get_security(function(err, result) {
-            var security = result.cloudant;
-            if (! security) {
-              security = {};
-            }
-            security[api.key] = ['_reader', '_writer'];
-            locationTrackerDb.set_security(security, function(err, result) {
-              if (err) {
-                console.error(err);
-                res.status(500).json({error: 'Internal Server Error'});
-              }
-              else {
-
-                // save user in database
-                var cipher = crypto.createCipher(algorithm, req.body.password);
-                var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
-                encryptedApiPassword += cipher.final('hex');
-                var user = {
-                  _id: req.params.id,
-                  name: req.body.name,
-                  api_key: api.key,
-                  api_password: encryptedApiPassword,
-                  location_db: dbName
-                };
-                var usersDb = cloudantService.use('users');
-                usersDb.insert(user, user._id, function (err, body) {
-                  if (err) {
-                    console.error(err);
-                    res.status(500).json({error: 'Internal Server Error'});
-                  }
-                  else {
-                    var url = cloudantService.config.url + "/_replicate";
-                    var source = cloudantService.config.url + "/" + dbName;
-                    var target = cloudantService.config.url + "/location-tracker-all";
-                    setupReplication(url, source, target, function(err, response, body) {
-                      if (err) {
-                        console.error(err);
-                        res.status(500).json({error: 'Internal Server Error'});
-                      }
-                      else {
-                        res.status(201).json({
-                          ok: true,
-                          id: user._id,
-                          rev: body.rev
-                        });
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          });
+          deferred.resolve(api);
         }
       });
     }
   });
+  return deferred.promise;
 };
 
-var setupReplication = function(url, source, target, callback) {
+/**
+ * 
+ * @param req
+ * @param cloudantService
+ * @param dbName
+ * @param api
+ * @returns {*}
+ */
+var saveUser = function(req, cloudantService, dbName, api) {
+  var deferred = Q.defer();
+  // save user in database
+  var cipher = crypto.createCipher(algorithm, req.body.password);
+  var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
+  encryptedApiPassword += cipher.final('hex');
+  var user = {
+    _id: req.params.id,
+    name: req.body.name,
+    api_key: api.key,
+    api_password: encryptedApiPassword,
+    location_db: dbName
+  };
+  var usersDb = cloudantService.use('users');
+  usersDb.insert(user, user._id, function (err, body) {
+    if (err) {
+      deferred.reject(err);
+    }
+    else {
+      deferred.resolve(user);
+    }
+  });
+  return deferred.promise;
+};
+
+/**
+ * This function configures continuous replication between a user's location database
+ * and the "All Locations" database.
+ * This function returns a promise that can be executed in a promise chain.
+ * @param url
+ * @param source
+ * @param target
+ * @param callback
+ */
+var setupReplication = function(cloudantService, dbName, user) {
+  var deferred = Q.defer();
+  var url = cloudantService.config.url + "/_replicate";
+  var source = cloudantService.config.url + "/" + dbName;
+  var target = cloudantService.config.url + "/location-tracker-all";
   var json = JSON.stringify({
     source: source,
     target: target,
@@ -111,7 +169,15 @@ var setupReplication = function(url, source, target, callback) {
     uri : url,
     body: json
   };
-  request.post(requestOptions, callback);
+  request.post(requestOptions, function(err, response, body) {
+    if (err) {
+      deferred.reject(err);
+    }
+    else {
+      deferred.resolve(user); // return the user
+    }
+  });
+  return deferred.promise;
 };
 
 module.exports.postSession = function(req, res) {
