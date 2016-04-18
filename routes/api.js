@@ -1,7 +1,7 @@
 // Licensed under the Apache 2.0 License. See footer for details.
 
-var crypto = require('crypto'),
-    algorithm = 'AES-256-CTR';
+var algorithm = 'AES-256-CTR';
+var crypto = require('crypto');
 var request = require('request');
 var uuid = require('node-uuid');
 var Q = require("q")
@@ -20,40 +20,80 @@ module.exports.putUser = function(req, res) {
     return res.sendStatus(400);
   }
 
-  // TODO: check if user exists
-
-  // create a database for this user
+  // When a user attempts to register we do the following:
+  // 1. Check if the user exists with the specified id. If the user already exists then return a status of 409 to the client.
+  // 2. Create a location database for this user and this user only
+  // 3. Generate an API key/password.
+  // 4. Associate the API key with the user's database.
+  // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
+  // 6. Configure continuous replication for the user's database to the "All Locations" database
   var dbName = 'location-tracker-' + uuid.v4();
-  createDatabase(cloudantService, dbName)
-      .then(function(body) {
+  checkIfUserExists(cloudantService, req.params.id).then(function () {
+        return createDatabase(cloudantService, dbName);
+      })
+      .then(function (body) {
         return generateApiKey(cloudantService);
       })
-      .then(function(api) {
-        return applyApiKey(cloudantService, dbName, api);
+      .then(function (api) {
+        return applyApiKey(cloudantService, dbName, api.key);
       })
-      .then(function(api) {
-        return saveUser(req, cloudantService, dbName, api);
+      .then(function (api) {
+        return saveUser(req, cloudantService, dbName, api.key, api.password);
       })
-      .then(function(user) {
+      .then(function (user) {
         return setupReplication(cloudantService, dbName, user);
       })
-      .then(function(user) {
+      .then(function (user) {
         res.status(201).json({
           ok: true,
           id: user._id,
           rev: user.rev
         });
-        }, function(err) {
-          console.error("Error registering user.", err.toString());
+      }, function (err) {
+        console.error("Error registering user.", err.toString());
+        if (err.statusCode && err.statusMessage) {
+          res.status(err.statusCode).json({error: err.statusMessage});
+        }
+        else {
           res.status(500).json({error: 'Internal Server Error'});
-        });
+        }
+      });
 };
 
 /**
- * This function creates a new location database for a user.
- * This function returns a promise that can be executed in a promise chain.
- * @param cloudantService
- * @param dbName
+ * This function checks if the user with the specified id exists in the users database.
+ * @param cloudantService - An instance of cloudant
+ * @param id - The id of the user to check
+ * @returns a promise
+ */
+var checkIfUserExists = function(cloudantService, id) {
+  var deferred = Q.defer();
+  var usersDb = cloudantService.use('users');
+  usersDb.find({
+    selector: {_id: id},
+    fields: ['_id']
+  }, function(err, result) {
+    if (err) {
+      deferred.reject(err);
+    }
+    else {
+      if (result.docs.length > 0) {
+        deferred.reject({statusCode:409,statusMessage:"User already exists"});
+      }
+      else {
+        deferred.resolve();
+      }
+    }
+  });
+  return deferred.promise;
+};
+
+
+/**
+ * This function creates a new database in Cloudant.
+ * @param cloudantService - An instance of cloudant
+ * @param dbName - The name of the database to create
+ * @returns a promise
  */
 var createDatabase = function(cloudantService, dbName) {
   var deferred = Q.defer();
@@ -70,8 +110,8 @@ var createDatabase = function(cloudantService, dbName) {
 
 /**
  * This function generates a new database API key.
- * This function returns a promise that can be executed in a promise chain.
- * @param cloudantService
+ * @param cloudantService - An instance of cloudant
+ * @returns a promise
  */
 var generateApiKey = function(cloudantService) {
   var deferred = Q.defer();
@@ -86,7 +126,14 @@ var generateApiKey = function(cloudantService) {
   return deferred.promise;
 };
 
-var applyApiKey = function(cloudantService, dbName, api) {
+/**
+ * This function associates an api key to a Cloudant database.
+ * @param cloudantService - An instance of cloudant
+ * @param dbName - The name of the database to associate the api key to
+ * @param api -
+ * @returns a promise
+ */
+var applyApiKey = function(cloudantService, dbName, apiKey) {
   var deferred = Q.defer();
   var locationTrackerDb = cloudantService.use(dbName);
   locationTrackerDb.get_security(function(err, result) {
@@ -98,7 +145,7 @@ var applyApiKey = function(cloudantService, dbName, api) {
       if (!security) {
         security = {};
       }
-      security[api.key] = ['_reader', '_writer'];
+      security[apiKey] = ['_reader', '_writer'];
       locationTrackerDb.set_security(security, function (err, result) {
         if (err) {
           deferred.reject(err);
@@ -113,23 +160,24 @@ var applyApiKey = function(cloudantService, dbName, api) {
 };
 
 /**
- * 
- * @param req
- * @param cloudantService
- * @param dbName
- * @param api
- * @returns {*}
+ * This function saves a user to the users datbase.
+ * @param req - The request from the client which contains the user's id and name
+ * @param cloudantService - An instance of cloudant
+ * @param dbName - The name of the database created for the user
+ * @param apiKey - The api key generated and associated to the database
+ * @param apiPassword - The api password generated and associated to the database
+ * @returns a promise
  */
-var saveUser = function(req, cloudantService, dbName, api) {
+var saveUser = function(req, cloudantService, dbName, apiKey, apiPassword) {
   var deferred = Q.defer();
   // save user in database
   var cipher = crypto.createCipher(algorithm, req.body.password);
-  var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
+  var encryptedApiPassword = cipher.update(apiPassword, 'utf8', 'hex');
   encryptedApiPassword += cipher.final('hex');
   var user = {
     _id: req.params.id,
     name: req.body.name,
-    api_key: api.key,
+    api_key: apiKey,
     api_password: encryptedApiPassword,
     location_db: dbName
   };
@@ -148,11 +196,10 @@ var saveUser = function(req, cloudantService, dbName, api) {
 /**
  * This function configures continuous replication between a user's location database
  * and the "All Locations" database.
- * This function returns a promise that can be executed in a promise chain.
- * @param url
- * @param source
- * @param target
- * @param callback
+ * @param cloudantService - An instance of cloudant
+ * @param dbName - The name of the user's location database
+ * @param user - The user (used for promise chaining)
+ * @returns a promise
  */
 var setupReplication = function(cloudantService, dbName, user) {
   var deferred = Q.defer();
