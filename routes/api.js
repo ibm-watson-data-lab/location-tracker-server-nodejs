@@ -4,7 +4,7 @@ var algorithm = 'AES-256-CTR';
 var crypto = require('crypto');
 var request = require('request');
 var uuid = require('node-uuid');
-var Q = require("q")
+var Q = require("q");
 
 module.exports.putUser = function(req, res) {
   var app = req.app;
@@ -28,7 +28,8 @@ module.exports.putUser = function(req, res) {
   // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
   // 6. Configure continuous replication for the user's database to the "All Locations" database
   var dbName = 'location-tracker-' + uuid.v4();
-  checkIfUserExists(cloudantService, req.params.id).then(function () {
+  checkIfUserExists(cloudantService, req.params.id)
+      .then(function () {
         return createDatabase(cloudantService, dbName);
       })
       .then(function () {
