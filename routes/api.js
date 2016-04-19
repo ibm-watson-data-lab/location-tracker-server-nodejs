@@ -31,7 +31,10 @@ module.exports.putUser = function(req, res) {
   checkIfUserExists(cloudantService, req.params.id).then(function () {
         return createDatabase(cloudantService, dbName);
       })
-      .then(function (body) {
+      .then(function () {
+        return createIndexes(cloudantService, dbName);
+      })
+      .then(function () {
         return generateApiKey(cloudantService);
       })
       .then(function (api) {
@@ -95,6 +98,35 @@ var checkIfUserExists = function(cloudantService, id) {
  * @param dbName - The name of the database to create
  * @returns a promise
  */
+var createIndexes = function(cloudantService, dbName) {
+  var deferred = Q.defer();
+  var index = {
+    _id: '_design/points',
+    language: 'javascript',
+    st_indexes: {
+      pointidx: {
+        index: 'function (doc) { if (doc.geometry && doc.geometry.coordinates) { st_index(doc.geometry); }}'
+      }
+    }
+  };
+  var locationTrackerDb = cloudantService.use(dbName);
+  locationTrackerDb.insert(index, function (err, result) {
+      if (err) {
+        deferred.reject(err);
+      }
+      else {
+        deferred.resolve();
+      }
+    });
+  return deferred.promise;
+};
+
+/**
+ * This function creates a new database in Cloudant.
+ * @param cloudantService - An instance of cloudant
+ * @param dbName - The name of the database to create
+ * @returns a promise
+ */
 var createDatabase = function(cloudantService, dbName) {
   var deferred = Q.defer();
   cloudantService.db.create(dbName, function(err, body) {
@@ -102,7 +134,7 @@ var createDatabase = function(cloudantService, dbName) {
       deferred.reject(err);
     }
     else {
-      deferred.resolve(body);
+      deferred.resolve();
     }
   });
   return deferred.promise;
