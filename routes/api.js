@@ -38,10 +38,10 @@ module.exports.putUser = function(req, res) {
         return generateApiKey(cloudantService);
       })
       .then(function (api) {
-        return applyApiKey(cloudantService, dbName, api.key);
+        return applyApiKey(cloudantService, dbName, api);
       })
       .then(function (api) {
-        return saveUser(req, cloudantService, dbName, api.key, api.password);
+        return saveUser(req, cloudantService, dbName, api);
       })
       .then(function (user) {
         return setupReplication(cloudantService, dbName, user);
@@ -165,7 +165,7 @@ var generateApiKey = function(cloudantService) {
  * @param api -
  * @returns a promise
  */
-var applyApiKey = function(cloudantService, dbName, apiKey) {
+var applyApiKey = function(cloudantService, dbName, api) {
   var deferred = Q.defer();
   var locationTrackerDb = cloudantService.use(dbName);
   locationTrackerDb.get_security(function(err, result) {
@@ -177,7 +177,7 @@ var applyApiKey = function(cloudantService, dbName, apiKey) {
       if (!security) {
         security = {};
       }
-      security[apiKey] = ['_reader', '_writer'];
+      security[api.key] = ['_reader', '_writer'];
       locationTrackerDb.set_security(security, function (err, result) {
         if (err) {
           deferred.reject(err);
@@ -200,16 +200,16 @@ var applyApiKey = function(cloudantService, dbName, apiKey) {
  * @param apiPassword - The api password generated and associated to the database
  * @returns a promise
  */
-var saveUser = function(req, cloudantService, dbName, apiKey, apiPassword) {
+var saveUser = function(req, cloudantService, dbName, api) {
   var deferred = Q.defer();
   // save user in database
   var cipher = crypto.createCipher(algorithm, req.body.password);
-  var encryptedApiPassword = cipher.update(apiPassword, 'utf8', 'hex');
+  var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
   encryptedApiPassword += cipher.final('hex');
   var user = {
     _id: req.params.id,
     name: req.body.name,
-    api_key: apiKey,
+    api_key: api.key,
     api_password: encryptedApiPassword,
     location_db: dbName
   };
