@@ -2,14 +2,30 @@
 
 The Location Tracker Server is a Node.js application to be used in conjunction with the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-swift).
 
-## Cloning
+The Location Tracker Server connects to IBM Cloudant and provides RESTful APIs for creating/managing users and creating/querying locations using [Cloudant Geo](https://docs.cloudant.com/geo.html). 
+
+## How it works
+
+The Location Tracker app supports offline-first, Cloudant Sync, and is implemented on a database-per-user architecture. When a user registers, a specific database is created for that user and is used to track only that user's locations. In addition, the server configures continuous replication for each user-specific database into a consolidated database where all locations can be queried (location_tracker_all). See the architecture diagram below for more information.
+
+### Architecture Diagram
+
+TBD
+
+## Running on Bluemix
+
+The fastest way to deploy this application to Bluemix is to click the **Deploy to Bluemix** button below.
+
+[![Deploy to Bluemix](https://deployment-tracker.mybluemix.net/stats/2956f80082fb32656c54ebba001dbdf3/button.svg)](https://bluemix.net/deploy?repository=https://github.com/ibm-cds-labs/location-tracker-server-nodejs)
+
+**Don't have a Bluemix account?** If you haven't already, you'll be prompted to sign up for a Bluemix account when you click the button.  Sign up, verify your email address, then return here and click the the **Deploy to Bluemix** button again. Your new credentials let you deploy to the platform and also to code online with Bluemix and Git. If you have questions about working in Bluemix, find answers in the [Bluemix Docs](https://www.ng.bluemix.net/docs/).
+
+## Running Locally
 
 Get the project and change into the project directory:
 
-    $ git clone https://github.com/cloudant-labs/location-tracker-nodejs.git
-    $ cd location-tracker-nodejs
-
-## Configuring Local Development
+    $ git clone https://github.com/ibm-cds-labs/location-tracker-server-nodejs.git
+    $ cd location-tracker-server-nodejs
 
 Local configuration is done through a `.env` file. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object. Here is an example `.env` file:
 
@@ -17,13 +33,9 @@ Local configuration is done through a `.env` file. One environment variable, `VC
 
 **Note:**  Services created within Bluemix are automatically added to the `VCAP_SERVICES` environment variable. Therefore, no configuration is needed for Bluemix.
 
-## Installing
-
 Install the project's dependencies:
 
     $ npm install
-
-## Running
 
 Run the project through [Foreman](https://github.com/ddollar/foreman):
 
