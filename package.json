@@ -4,7 +4,7 @@
   "description": "A demo web application which records a device's location and saves this information to IBM Cloudant",
   "main": "app.js",
   "scripts": {
-    "install": "./admin.js track && ./admin.js db put && ./admin.js api set_security",
+    "install": "./admin.js db put",
     "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
