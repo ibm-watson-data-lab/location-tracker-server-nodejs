@@ -4,8 +4,8 @@ declared-services:
     label: cloudantNoSQLDB
     plan: Shared
 applications:
-- name: cloudant-location-tracker
+- name: location-tracker
   memory: 128M
-  host: locationtracker2
+  host: location-tracker-${random-word}
   services:
   - cloudant-location-tracker-db

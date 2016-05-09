@@ -1,51 +1,128 @@
-// Licensed under the Apache 2.0 License. See footer for details.
-
 var algorithm = 'AES-256-CTR';
 var crypto = require('crypto');
 var request = require('request');
 var uuid = require('node-uuid');
 var Q = require("q");
+var querystring = require("querystring")
 
-module.exports.putUser = function(req, res) {
+/**
+ * Gets a list of places based on the geo query passed in the request. Example request:
+ * /api/places?lat=37.49453457&lon=-122.30464079&radius=4023.35&relation=contains&nearest=true&include_docs=true
+ * @param req - The request from the client which contains the geo query
+ * @param res - The response to be sent to the client
+ * @returns {*}
+ */
+module.exports.getPlaces = function(req, res) {
   var app = req.app;
-  var cloudantService = app.get('cloudant-location-tracker-db');
-  if (!cloudantService) {
+  var cloudant = app.get('cloudant-location-tracker-db');
+  if (!cloudant) {
+    return res.status(500).json({ error: 'No database server configured' })
+  }
+  // Call the Cloudant HTTP API directly as the cloudant-nodejs library
+  // does not currently support querying geo indexes.
+  var url = cloudant.config.url + "/places/_design/geodd/_geo/geoidx";
+  url += "?" + querystring.stringify(req.query);
+  request.get({uri:url}, function(err, response, body) {
+    if (err) {
+      res.status(500).json({error: 'Internal Server Error'});
+    }
+    else {
+      var obj = null;
+      if (body) {
+        obj = JSON.parse(body);
+      }
+      res.json(obj);
+    }
+  });
+};
+
+/**
+ * Logs in the user. Returns the name of the location database associated with the user
+ * along with the api key and password, and the cloudant account (for device/cloudant sync).
+ * @param req - The request from the client which contains the user's username and password
+ * @param res - The response to be sent to the client
+ * @returns {*}
+ */
+module.exports.loginUser = function(req, res) {
+  var app = req.app;
+  var cloudant = app.get('cloudant-location-tracker-db');
+  if (!cloudant) {
     return res.status(500).json({ error: 'No database server configured' })
   }
   if (!req.body) {
     return res.sendStatus(400);
   }
-  if (req.params.id != 'org.couchdb.user:' + req.body.name) {
-    // TOOD: Better handle this error
+  var usersDb = cloudant.use('location_tracker_users');
+  usersDb.get(req.body.username, function(err, user) {
+    if (!err) {
+      var apiKey = user.api_key;
+      var apiPassword = user.api_password;
+      var locationDb = user.location_db;
+      var decipher = crypto.createDecipher(algorithm, req.body.password);
+      var decryptedApiPassword = decipher.update(apiPassword, 'hex', 'utf8');
+      decryptedApiPassword += decipher.final('utf8');
+      cloudant.auth(user.api_key, decryptedApiPassword, function(err, body, headers) {
+        if (!err) {
+          res.json({
+            ok: true,
+            api_key: apiKey,
+            api_password: decryptedApiPassword,
+            location_db: locationDb
+          });
+        }
+        else {
+          res.status(500).json({error: 'Internal Server Error'});
+        }
+      });
+    }
+    else {
+      res.status(500).json({error: 'Internal Server Error'});
+    }
+  });
+};
+
+/**
+ * Creates a new user along with a location database specifically for that user.
+ * Sets up continuous replication between the user's location database and the location_tracker_all database.
+ * @param req - The request from the client which contains the user's registration information
+ * @param res - The response to be sent to the client
+ * @returns {*}
+ */
+module.exports.createUser = function(req, res) {
+  var cloudant = req.app.get('cloudant-location-tracker-db');
+  if (!cloudant) {
+    return res.status(500).json({ error: 'No database server configured' })
+  }
+  if (!req.body) {
     return res.sendStatus(400);
   }
 
   // When a user attempts to register we do the following:
   // 1. Check if the user exists with the specified id. If the user already exists then return a status of 409 to the client.
-  // 2. Create a location database for this user and this user only
+  // 2. Create a location database for this user and this user only (database-per-user).
   // 3. Generate an API key/password.
-  // 4. Associate the API key with the user's database.
+  // 4. Associate the API key with the newly created location database.
   // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
-  // 6. Configure continuous replication for the user's database to the "All Locations" database
-  var dbName = 'location-tracker-' + uuid.v4();
-  checkIfUserExists(cloudantService, req.params.id)
+  // 6. Configure continuous replication for the user's location database to the "All Locations" database.
+  var dbName = 'location_tracker_' + uuid.v4().replace(/-/g,'');
+  checkIfUserExists(cloudant, req.params.id)
       .then(function () {
-        return createDatabase(cloudantService, dbName);
+        return createDatabase(cloudant, dbName);
       })
       .then(function () {
-        return createIndexes(cloudantService, dbName);
+        return createIndexes(cloudant, dbName);
       })
       .then(function () {
-        return generateApiKey(cloudantService);
+        return generateApiKey(cloudant);
       })
       .then(function (api) {
-        return applyApiKey(cloudantService, dbName, api);
+        return applyApiKey(cloudant, dbName, api);
       })
       .then(function (api) {
-        return saveUser(req, cloudantService, dbName, api);
+        return saveUser(req, cloudant, dbName, api);
       })
       .then(function (user) {
-        return setupReplication(cloudantService, dbName, user);
+        return setupReplication(cloudant, dbName, user);
       })
       .then(function (user) {
         res.status(201).json({
@@ -65,14 +142,14 @@ module.exports.putUser = function(req, res) {
 };
 
 /**
- * This function checks if the user with the specified id exists in the users database.
- * @param cloudantService - An instance of cloudant
+ * Checks if the user with the specified id exists in the users database.
+ * @param cloudant - An instance of cloudant
  * @param id - The id of the user to check
- * @returns a promise
+ * @returns {*|promise}
  */
-var checkIfUserExists = function(cloudantService, id) {
+var checkIfUserExists = function(cloudant, id) {
   var deferred = Q.defer();
-  var usersDb = cloudantService.use('users');
+  var usersDb = cloudant.use('location_tracker_users');
   usersDb.find({
     selector: {_id: id},
     fields: ['_id']
@@ -94,12 +171,12 @@ var checkIfUserExists = function(cloudantService, id) {
 
 
 /**
- * This function creates a new database in Cloudant.
- * @param cloudantService - An instance of cloudant
- * @param dbName - The name of the database to create
- * @returns a promise
+ * Creates geo indexes for the specified database.
+ * @param cloudant - An instance of cloudant
+ * @param dbName - The name of the database
+ * @returns {*|promise}
  */
-var createIndexes = function(cloudantService, dbName) {
+var createIndexes = function(cloudant, dbName) {
   var deferred = Q.defer();
   var index = {
     _id: '_design/points',
@@ -110,7 +187,7 @@ var createIndexes = function(cloudantService, dbName) {
       }
     }
   };
-  var locationTrackerDb = cloudantService.use(dbName);
+  var locationTrackerDb = cloudant.use(dbName);
   locationTrackerDb.insert(index, function (err, result) {
       if (err) {
         deferred.reject(err);
@@ -123,14 +200,14 @@ var createIndexes = function(cloudantService, dbName) {
 };
 
 /**
- * This function creates a new database in Cloudant.
- * @param cloudantService - An instance of cloudant
+ * Creates a new database in Cloudant.
+ * @param cloudant - An instance of cloudant
  * @param dbName - The name of the database to create
- * @returns a promise
+ * @returns {*|promise}
  */
-var createDatabase = function(cloudantService, dbName) {
+var createDatabase = function(cloudant, dbName) {
   var deferred = Q.defer();
-  cloudantService.db.create(dbName, function(err, body) {
+  cloudant.db.create(dbName, function(err, body) {
     if (err) {
       deferred.reject(err);
     }
@@ -142,13 +219,13 @@ var createDatabase = function(cloudantService, dbName) {
 };
 
 /**
- * This function generates a new database API key.
- * @param cloudantService - An instance of cloudant
- * @returns a promise
+ * Generates a new database API key.
+ * @param cloudant - An instance of cloudant
+ * @returns {*|promise}
  */
-var generateApiKey = function(cloudantService) {
+var generateApiKey = function(cloudant) {
   var deferred = Q.defer();
-  cloudantService.generate_api_key(function(err, api) {
+  cloudant.generate_api_key(function(err, api) {
     if (err) {
       deferred.reject(err);
     }
@@ -160,15 +237,15 @@ var generateApiKey = function(cloudantService) {
 };
 
 /**
- * This function associates an api key to a Cloudant database.
- * @param cloudantService - An instance of cloudant
+ * Associates an api key to a Cloudant database.
+ * @param cloudant - An instance of cloudant
  * @param dbName - The name of the database to associate the api key to
- * @param api -
- * @returns a promise
+ * @param api - The api object which contains the api key and password
+ * @returns {*|promise}
  */
-var applyApiKey = function(cloudantService, dbName, api) {
+var applyApiKey = function(cloudant, dbName, api) {
   var deferred = Q.defer();
-  var locationTrackerDb = cloudantService.use(dbName);
+  var locationTrackerDb = cloudant.use(dbName);
   locationTrackerDb.get_security(function(err, result) {
     if (err) {
       deferred.reject(err);
@@ -193,15 +270,15 @@ var applyApiKey = function(cloudantService, dbName, api) {
 };
 
 /**
- * This function saves a user to the users datbase.
- * @param req - The request from the client which contains the user's id and name
- * @param cloudantService - An instance of cloudant
- * @param dbName - The name of the database created for the user
- * @param apiKey - The api key generated and associated to the database
+ * Aaves a user to the location_tracker_users database.
+ * @param req - The request from the client which contains the user's id and password
+ * @param cloudant - An instance of cloudant
+ * @param dbName - The name of the location database created for the user
+ * @param apiKey - The api key generated and associated to the location database
  * @param apiPassword - The api password generated and associated to the database
- * @returns a promise
+ * @returns {*|promise}
  */
-var saveUser = function(req, cloudantService, dbName, api) {
+var saveUser = function(req, cloudant, dbName, api) {
   var deferred = Q.defer();
   // save user in database
   var cipher = crypto.createCipher(algorithm, req.body.password);
@@ -209,12 +286,11 @@ var saveUser = function(req, cloudantService, dbName, api) {
   encryptedApiPassword += cipher.final('hex');
   var user = {
     _id: req.params.id,
-    name: req.body.name,
     api_key: api.key,
     api_password: encryptedApiPassword,
     location_db: dbName
   };
-  var usersDb = cloudantService.use('users');
+  var usersDb = cloudant.use('location_tracker_users');
   usersDb.insert(user, user._id, function (err, body) {
     if (err) {
       deferred.reject(err);
@@ -227,18 +303,18 @@ var saveUser = function(req, cloudantService, dbName, api) {
 };
 
 /**
- * This function configures continuous replication between a user's location database
- * and the "All Locations" database.
- * @param cloudantService - An instance of cloudant
+ * Configures continuous replication between a user's location database
+ * and the location_tracker_all database.
+ * @param cloudant - An instance of cloudant
  * @param dbName - The name of the user's location database
  * @param user - The user (used for promise chaining)
- * @returns a promise
+ * @returns {*|promise}
  */
-var setupReplication = function(cloudantService, dbName, user) {
+var setupReplication = function(cloudant, dbName, user) {
   var deferred = Q.defer();
-  var url = cloudantService.config.url + "/_replicate";
-  var source = cloudantService.config.url + "/" + dbName;
-  var target = cloudantService.config.url + "/location-tracker-all";
+  var url = cloudant.config.url + "/_replicate";
+  var source = cloudant.config.url + "/" + dbName;
+  var target = cloudant.config.url + "/location_tracker_all";
   var json = JSON.stringify({
     source: source,
     target: target,
@@ -259,146 +335,3 @@ var setupReplication = function(cloudantService, dbName, user) {
   });
   return deferred.promise;
 };
-
-module.exports.postSession = function(req, res) {
-  var app = req.app;
-  var cloudantService = app.get('cloudant-location-tracker-db');
-  if (!cloudantService) {
-    return res.status(500).json({ error: 'No database server configured' })
-  }
-  if (!req.body) {
-    return res.sendStatus(400);
-  }
-  var usersDb = cloudantService.use('users');
-  usersDb.get('org.couchdb.user:' + req.body.name, function(err, body) {
-    if (!err) {
-      var apiKey = body.api_key;
-      var apiPassword = body.api_password;
-      var locationDb = body.location_db;
-      var decipher = crypto.createDecipher(algorithm, req.body.password);
-      var decryptedApiPassword = decipher.update(apiPassword, 'hex', 'utf8');
-      decryptedApiPassword += decipher.final('utf8');
-      cloudantService.auth(body.api_key, decryptedApiPassword, function(err, body, headers) {
-        if (!err) {
-          // TODO: This is a hack to deal with running app locally
-          var cookieData = {};
-          var cookieKeyValues = headers['set-cookie'][0].split(';');
-          cookieKeyValues.map(function(keyValueString) {
-              var keyValue = keyValueString.trim().split('=');
-              cookieData[keyValue[0]] = keyValue[1];
-          });
-          var cookie = '';
-          for (var key in cookieData) {
-              switch (key) {
-                  case 'AuthSession':
-                      cookie += 'AuthSession=' + cookieData[key]
-                      break;
-                  case 'Version':
-                      cookie += '; Version=' + cookieData[key]
-                      break;
-                  case 'Expires':
-                      cookie += '; Expires=' + cookieData[key]
-                      break;
-                  case 'Max-Age':
-                      cookie += '; Max-Age=' + cookieData[key]
-                      break;
-                  case 'Path':
-                      cookie += '; Path=' + cookieData[key]
-                      break;
-                  case 'HttpOnly':
-                      cookie += '; HttpOnly'
-                      break;
-                  case 'Secure':
-                      // Intentionally not set
-                      break;
-              }
-          }
-          res.setHeader('Set-Cookie', cookie);
-          res.json({
-            ok: true,
-            name: req.body.name,
-            api_key: apiKey,
-            api_password: decryptedApiPassword,
-            location_db: locationDb,
-            roles: body.roles
-          });
-        } else {
-          res.status(500).json({error: 'Internal Server Error'});
-        }
-      });
-    } else {
-      res.status(500).json({error: 'Internal Server Error'});
-    }
-  });
-};
-
-module.exports.getSession = function(req, res) {
-  var app = req.app;
-  var cloudantService = app.get('cloudant-location-tracker-db');
-  if (!cloudantService) {
-    return res.status(500).json({ error: 'No database server configured' })
-  }
-  if (!req.body) {
-    return res.sendStatus(400);
-  }
-  var vcapServices = app.get('vcapServices');
-  if (!(vcapServices.cloudantNoSQLDB && vcapServices.cloudantNoSQLDB.length > 0)) {
-    return res.status(500).json({error: 'No VCAP_SERVICES configured'});
-  }
-  var service = vcapServices.cloudantNoSQLDB[0];
-  if (!service.credentials) {
-    return res.status(500).json({error: 'No service credentials configured'});
-  }
-  var cookieCloudant = require('cloudant')({
-    cookie: 'AuthSession=' + req.cookies.AuthSession,
-    account: service.credentials.username
-  });
-  var usersDb = cloudantService.use('users');
-  cookieCloudant.session(function(err, body) {
-    if (!err) {
-      usersDb.find({
-        selector: {
-          api_key: body.userCtx.name
-        },
-        fields: [
-          'name',
-          'api_key',
-          'api_password',
-          'location_db'
-        ]
-      }, function(err, result) {
-        if (!err) {
-          if (result.docs.length > 0) {
-            body.userCtx.name = result.docs[0].name;
-            body.userCtx.api_key = result.docs[0].api_key;
-            body.userCtx.api_password = result.docs[0].api_password;
-            body.userCtx.location_db = result.docs[0].location_db;
-            res.json(body);
-          } else {
-            res.json(body);
-          }
-        } else {
-          res.status(500).json({error: 'Internal Server Error'});
-        }
-      });
-    } else {
-      res.status(500).json({error: 'Internal Server Error'});
-    }
-  });
-};
-
-//-------------------------------------------------------------------------------
-// Copyright IBM Corp. 2015
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//-------------------------------------------------------------------------------

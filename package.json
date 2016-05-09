@@ -1,16 +1,16 @@
 {
-  "name": "cloudant-location-tracker",
-  "version": "0.0.0",
+  "name": "location-tracker-server",
+  "version": "0.0.1",
   "description": "A demo web application which records a device's location and saves this information to IBM Cloudant",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "install": "./admin.js track && ./admin.js db put && ./admin.js api set_security",
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cloudant-labs/location-tracker-nodejs.git"
+    "url": "https://github.com/ibm-cds-labs/location-tracker-server.git"
   },
   "keywords": [
     "PouchDB",
@@ -22,22 +22,22 @@
     "JavaScript",
     "geospatial"
   ],
-  "author": "Bradley Holt <bradley.holt@us.ibm.com> (https://cloudant.com/)",
+  "author": "Mark Watson <markwats@us.ibm.com>",
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/cloudant-labs/location-tracker-nodejs/issues"
+    "url": "https://github.com/ibm-cds-labs/location-tracker-server/issues"
   },
-  "homepage": "https://github.com/cloudant-labs/location-tracker-nodejs",
+  "homepage": "https://github.com/ibm-cds-labs/location-tracker-server",
   "dependencies": {
     "body-parser": "^1.11.0",
     "cf-deployment-tracker-client": "^0.0.3",
+    "cfenv": "1.0.x",
     "cloudant": "^1.3.0",
     "commander": "^2.6.0",
-    "cookie-parser": "^1.3.4",
     "dotenv": "^0.5.1",
     "express": "^4.11.1",
     "http-post": "^0.1.1",
-    "http-proxy": "^1.8.1",
+    "nano": "6.2.0",
     "node-uuid": "^1.4.7",
     "q":"^1.4.1",
     "request": "^2.69.0"
