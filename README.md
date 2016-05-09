@@ -1,6 +1,6 @@
-# Location Tracker Backend
+# Location Tracker Server
 
-The Location Tracker Backend is a Node.js application to be used in conjunction with the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-swift).
+The Location Tracker Server is a Node.js application to be used in conjunction with the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-swift).
 
 ## Cloning
 
