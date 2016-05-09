@@ -1,6 +1,6 @@
-# Cloudant Location Tracker
+# Location Tracker Backend
 
-The Cloudant Location Tracker is a demo web application which records a device's location and saves this information to [IBM Cloudant](https://cloudant.com/).
+The Location Tracker Backend is a Node.js application to be used in conjunction with the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-swift).
 
 ## Cloning
 
@@ -27,7 +27,7 @@ Install the project's dependencies:
 
 Run the project through [Foreman](https://github.com/ddollar/foreman):
 
-    $ foreman start
+    $ npm start
 
 ## Configuring IBM Bluemix
 
