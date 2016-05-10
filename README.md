@@ -10,7 +10,7 @@ The Location Tracker app supports offline-first, Cloudant Sync, and is implement
 
 ### Architecture Diagram
 
-TBD
+![Architecture of Location Tracker](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2ArchDiagram1Sm.png)
 
 ## Running on Bluemix
 
