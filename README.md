@@ -8,8 +8,6 @@ The Location Tracker Server connects to IBM Cloudant and provides RESTful APIs f
 
 The Location Tracker app supports offline-first, Cloudant Sync, and is implemented on a database-per-user architecture. When a user registers, a specific database is created for that user and is used to track only that user's locations. In addition, the server configures continuous replication for each user-specific database into a consolidated database where all locations can be queried. See the architecture diagram below for more information.
 
-### Architecture Diagram
-
 ![Architecture of Location Tracker](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2ArchDiagram1.png)
 
 ### Cloudant
@@ -22,10 +20,11 @@ When you install the Location Tracker Server three databases will be created in 
 2. lt_places - This database contains a list of places that the Location Tracker app will query.
 3. lt_users - This database is used to store users.
 
-The `lt_locations_all` and `lt_places` database will each have a geo index. The `lt_places` database will be populated with 50 sample places that follow the path of the "Freeway Drive" debug location setting in the iOS simulator:
+The `lt_locations_all` and `lt_places` database will each be created with a geo index allowing you to make geo queries and take advantage of the integrated map visuals in the Cloudant Dashboard. The `lt_places` database will be populated with 50 sample places that follow the path of the "Freeway Drive" debug location setting in the iOS simulator:
  
  ![Location Tracker Sample Places](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2CloudantPlaces2.png)
 
+Follow the instructions below to get the Location Tracker Server up and running. Once you are finished follow the instructions to download and run the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-client-swift).
 
 ## Running on Bluemix
 
