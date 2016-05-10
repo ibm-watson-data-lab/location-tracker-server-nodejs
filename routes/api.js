@@ -3,7 +3,8 @@ var crypto = require('crypto');
 var request = require('request');
 var uuid = require('node-uuid');
 var Q = require("q");
-var querystring = require("querystring")
+var querystring = require("querystring");
+var wurl = require('wurl');
 
 /**
  * Gets a list of places based on the geo query passed in the request. Example request:
@@ -63,11 +64,13 @@ module.exports.loginUser = function(req, res) {
       decryptedApiPassword += decipher.final('utf8');
       cloudant.auth(user.api_key, decryptedApiPassword, function(err, body, headers) {
         if (!err) {
+          var hostname = wurl('hostname',cloudant.config.url);
           res.json({
             ok: true,
             api_key: apiKey,
             api_password: decryptedApiPassword,
-            location_db: locationDb
+            location_db_name: locationDb,
+            location_db_host: hostname
           });
         }
         else {
