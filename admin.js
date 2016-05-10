@@ -133,16 +133,16 @@ var createDesignDoc = function(cloudant, dbName, designDoc) {
   var db = cloudant.use(dbName);
   db.insert(designDoc, function(err, result) {
     if (!err) {
-      console.log('Design doc created successfully on database <' + dbName + '>.');
+      console.log('Design doc created successfully in database <' + dbName + '>.');
       deferred.resolve(result);
     }
     else {
       if (409 == err.statusCode) {
-        console.log('Design doc already exists on database <' + dbName + '>.');
+        console.log('Design doc already exists in database <' + dbName + '>.');
         deferred.resolve(result);
       }
       else {
-        console.error('Error creating design doc on database <' + dbName + '>: ' + err);
+        console.error('Error creating design doc in database <' + dbName + '>: ' + err);
         deferred.reject(err);
       }
     }
