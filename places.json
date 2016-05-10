@@ -1,0 +1,554 @@
+{
+  "places": [
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0854231,
+          37.3325034
+        ]
+      },
+      "name": "Rancho San Antonio",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0854231,
+          37.3325034
+        ]
+      },
+      "name": "Gate of Heaven Catholic Cemetery",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0838996,
+          37.3331688
+        ]
+      },
+      "name": "Creative Learning Center",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0851119,
+          37.3370331
+        ]
+      },
+      "name": "The Forum at Rancho San Antonio",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0913132,
+          37.3392424
+        ]
+      },
+      "name": "Vadasz Family Vineyard",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0933838,
+          37.3415285
+        ]
+      },
+      "name": "Waldorf School of the Peninsula",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0937307,
+          37.3464786
+        ]
+      },
+      "name": "Los Altos Golf Country Club",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.0937307,
+          37.3464786
+        ]
+      },
+      "name": "Montclaire Elementary School",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1208103,
+          37.3563037
+        ]
+      },
+      "name": "Foothill College",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1240719,
+          37.3591349
+        ]
+      },
+      "name": "St. Nicholas Catholic School",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1440704,
+          37.3725053
+        ]
+      },
+      "name": "Fremont Hills Country Club",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1522244,
+          37.386453
+        ]
+      },
+      "name": "Poor Clare Nuns",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1666439,
+          37.3878169
+        ]
+      },
+      "name": "Pearson Arastradero Preserve",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1786173,
+          37.3915335
+        ]
+      },
+      "name": "Felt Lake",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1784027,
+          37.3918745
+        ]
+      },
+      "name": "Portola Pastures Inc",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1839817,
+          37.4001594
+        ]
+      },
+      "name": "Boething Treeland Farms Inc",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.1908911,
+          37.4054095
+        ]
+      },
+      "name": "Stanford Dish",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.205654,
+          37.4110683
+        ]
+      },
+      "name": "Webb Ranch",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3162468,
+          37.4722645
+        ]
+      },
+      "name": "Edgewood Park Natural Preserve",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3162468,
+          37.4722645
+        ]
+      },
+      "name": "Pulgas Ridge Open Space Preserve",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3162468,
+          37.4722645
+        ]
+      },
+      "name": "Pulgas Water Temple",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3162468,
+          37.4722645
+        ]
+      },
+      "name": "Filoli",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3362024,
+          37.4990306
+        ]
+      },
+      "name": "Upper Crystal Springs Reservoir",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3442705,
+          37.5133972
+        ]
+      },
+      "name": "Highlands Recreation Center",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3510082,
+          37.5167331
+        ]
+      },
+      "name": "Highlands Elementary School",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.363046,
+          37.5255488
+        ]
+      },
+      "name": "Lower Crystal Springs Reservoir",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3583038,
+          37.5248171
+        ]
+      },
+      "name": "Sawyer Camp Trail",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3639257,
+          37.5329171
+        ]
+      },
+      "name": "Crystal Springs Safety Roadside Rest Area",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3797186,
+          37.5509859
+        ]
+      },
+      "name": "Crystal Springs Golf Course",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3892458,
+          37.5613965
+        ]
+      },
+      "name": "The Nueva School",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4031933,
+          37.5774517
+        ]
+      },
+      "name": "Mills Canyon Park",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4031933,
+          37.5774517
+        ]
+      },
+      "name": "Cuernavaca Park",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.424780,
+          37.595068
+        ]
+      },
+      "name": "San Andreas Lake",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4219091,
+          37.6076
+        ]
+      },
+      "name": "Junipero Serra County Park",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4346948,
+          37.6491219
+        ]
+      },
+      "name": "California Golf Club",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4373166,
+          37.6273773
+        ]
+      },
+      "name": "Crestmoor Canyon",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4300493,
+          37.6309108
+        ]
+      },
+      "name": "Golden Gate National Cemetery",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4639036,
+          37.6616563
+        ]
+      },
+      "name": "Chinese Cemetery",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4639036,
+          37.6616563
+        ]
+      },
+      "name": "Hoy Sun Ning Yung Cemetery",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4649615,
+          37.674909
+        ]
+      },
+      "name": "Woodlawn Memorial Park",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4681352,
+          37.6871765
+        ]
+      },
+      "name": "Lake Merced Golf Club",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4649615,
+          37.7036999
+        ]
+      },
+      "name": "San Francisco Golf Club",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4526807,
+          37.7151622
+        ]
+      },
+      "name": "City College of San Francisco",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.445771,
+          37.7217181
+        ]
+      },
+      "name": "Balboa Park",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4424236,
+          37.7283782
+        ]
+      },
+      "name": "Glen Park Station",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.2252393,
+          37.4122214
+        ]
+      },
+      "name": "The Horse Park at Woodside",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.2534776,
+          37.435397
+        ]
+      },
+      "name": "Cañada College",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.291758,
+          37.4549543
+        ]
+      },
+      "name": "Edgewood Park & Natural Preserve",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.2783685,
+          37.4418712
+        ]
+      },
+      "name": "West Meadow Picnic Area",
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.2609448,
+          37.4351925
+        ]
+      },
+      "name": "Woodside High School",
+      "type": "Feature"
+    }
+  ]
+}

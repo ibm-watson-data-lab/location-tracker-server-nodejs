@@ -1,7 +1,6 @@
 var algorithm = 'AES-256-CTR';
 var crypto = require('crypto');
 var request = require('request');
-var uuid = require('node-uuid');
 var Q = require("q");
 var querystring = require("querystring");
 var wurl = require('wurl');
@@ -21,7 +20,7 @@ module.exports.getPlaces = function(req, res) {
   }
   // Call the Cloudant HTTP API directly as the cloudant-nodejs library
   // does not currently support querying geo indexes.
-  var url = cloudant.config.url + "/places/_design/geodd/_geo/geoidx";
+  var url = cloudant.config.url + "/lt_places/_design/points/_geo/pointidx";
   url += "?" + querystring.stringify(req.query);
   request.get({uri:url}, function(err, response, body) {
     if (err) {
@@ -53,7 +52,7 @@ module.exports.loginUser = function(req, res) {
   if (!req.body) {
     return res.sendStatus(400);
   }
-  var usersDb = cloudant.use('location_tracker_users');
+  var usersDb = cloudant.use('lt_users');
   usersDb.get(req.body.username, function(err, user) {
     if (!err) {
       var apiKey = user.api_key;
@@ -86,7 +85,7 @@ module.exports.loginUser = function(req, res) {
 
 /**
  * Creates a new user along with a location database specifically for that user.
- * Sets up continuous replication between the user's location database and the location_tracker_all database.
+ * Sets up continuous replication between the user's location database and the lt_locations_all database.
  * @param req - The request from the client which contains the user's registration information
  * @param res - The response to be sent to the client
  * @returns {*}
@@ -107,7 +106,8 @@ module.exports.createUser = function(req, res) {
   // 4. Associate the API key with the newly created location database.
   // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
   // 6. Configure continuous replication for the user's location database to the "All Locations" database.
-  var dbName = 'location_tracker_' + uuid.v4().replace(/-/g,'');
+  var username = req.params.id;
+  var dbName = 'lt_locations_user_' + encodeURIComponent(username);
   checkIfUserExists(cloudant, req.params.id)
       .then(function () {
         return createDatabase(cloudant, dbName);
@@ -152,7 +152,7 @@ module.exports.createUser = function(req, res) {
  */
 var checkIfUserExists = function(cloudant, id) {
   var deferred = Q.defer();
-  var usersDb = cloudant.use('location_tracker_users');
+  var usersDb = cloudant.use('lt_users');
   usersDb.find({
     selector: {_id: id},
     fields: ['_id']
@@ -273,7 +273,7 @@ var applyApiKey = function(cloudant, dbName, api) {
 };
 
 /**
- * Aaves a user to the location_tracker_users database.
+ * Saves a user to the lt_users database.
  * @param req - The request from the client which contains the user's id and password
  * @param cloudant - An instance of cloudant
  * @param dbName - The name of the location database created for the user
@@ -289,11 +289,12 @@ var saveUser = function(req, cloudant, dbName, api) {
   encryptedApiPassword += cipher.final('hex');
   var user = {
     _id: req.params.id,
+    username: req.params.id,
     api_key: api.key,
     api_password: encryptedApiPassword,
     location_db: dbName
   };
-  var usersDb = cloudant.use('location_tracker_users');
+  var usersDb = cloudant.use('lt_users');
   usersDb.insert(user, user._id, function (err, body) {
     if (err) {
       deferred.reject(err);
@@ -307,7 +308,7 @@ var saveUser = function(req, cloudant, dbName, api) {
 
 /**
  * Configures continuous replication between a user's location database
- * and the location_tracker_all database.
+ * and the lt_locations_all database.
  * @param cloudant - An instance of cloudant
  * @param dbName - The name of the user's location database
  * @param user - The user (used for promise chaining)
@@ -317,7 +318,7 @@ var setupReplication = function(cloudant, dbName, user) {
   var deferred = Q.defer();
   var url = cloudant.config.url + "/_replicate";
   var source = cloudant.config.url + "/" + dbName;
-  var target = cloudant.config.url + "/location_tracker_all";
+  var target = cloudant.config.url + "/lt_locations_all";
   var json = JSON.stringify({
     source: source,
     target: target,

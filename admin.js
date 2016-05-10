@@ -3,6 +3,7 @@
 var cloudant = require('cloudant');
 var dotenv = require('dotenv');
 var express = require('express');
+var fs = require('fs');
 var http = require('http');
 var path = require('path');
 var pkg = require(path.join(__dirname, 'package.json'));
@@ -49,7 +50,8 @@ program
       }
       switch (method) {
         case 'put':
-          createDatabase(cloudant,'location_tracker_all')
+          var insertPlaceDocs = false;
+          createDatabase(cloudant,'lt_locations_all')
               .then(function() {
                 var designDoc = {
                   _id: '_design/points',
@@ -60,10 +62,10 @@ program
                     }
                   }
                 };
-                return createDesignDoc(cloudant,'location_tracker_all', designDoc);
+                return createDesignDoc(cloudant,'lt_locations_all', designDoc);
               })
               .then(function() {
-                return createDatabase(cloudant, 'location_tracker_users');
+                return createDatabase(cloudant, 'lt_users');
               })
               .then(function() {
                 var index = {
@@ -72,15 +74,42 @@ program
                     fields: ['api_key']
                   }
                 };
-                return createIndex(cloudant,'location_tracker_users', index);
+                return createIndex(cloudant,'lt_users', index);
+              })
+              .then(function() {
+                return createDatabase(cloudant, 'lt_places');
+              })
+              .then(function(placesDbCreated) {
+                insertPlaceDocs = placesDbCreated;
+                var designDoc = {
+                  _id: '_design/points',
+                  language: 'javascript',
+                  st_indexes: {
+                    pointidx: {
+                      index: 'function (doc) { if (doc.geometry && doc.geometry.coordinates) { st_index(doc.geometry); }}'
+                    }
+                  }
+                };
+                return createDesignDoc(cloudant,'lt_places', designDoc);
+              })
+              .then(function() {
+                if (insertPlaceDocs) {
+                  var obj = JSON.parse(fs.readFileSync('places.json', 'utf8'));
+                  if (obj && obj.places && obj.places.length > 0) {
+                    for (var i = 0; i < obj.places.length; i++) {
+                      obj.places[i].created_at = new Date().getTime();
+                    }
+                  }
+                  return insertDocs(cloudant, 'lt_places', obj.places);
+                }
               }, function (err) {
                 console.error("Error running admin.", err.toString());
               });
           break;
         case 'delete':
-            destroyDatabase(cloudant, 'location_tracker_all')
+            destroyDatabase(cloudant, 'lt_locations_all')
                 .then(function() {
-                  return destroyDatabase(cloudant, 'location_tracker_users');
+                  return destroyDatabase(cloudant, 'lt_users');
                 }, function(err) {
                   console.error("Error running admin.", err.toString());
                 });
@@ -105,12 +134,12 @@ var createDatabase = function(cloudant, dbName) {
   cloudant.db.create(dbName, function(err, body) {
     if (!err) {
       console.log('Database <' + dbName + '> created successfully.');
-      deferred.resolve();
+      deferred.resolve(true);
     }
     else {
       if (412 == err.statusCode) {
         console.log('Database <' + dbName + '> already exists.');
-        deferred.resolve();
+        deferred.resolve(false);
       }
       else {
         console.error('Error creating database <' + dbName + '>: ' + err);
@@ -177,6 +206,29 @@ var createIndex = function(cloudant, dbName, index) {
   });
   return deferred.promise;
 };
+
+/**
+ * Inserts docs in the specified database.
+ * @param cloudant - An instance of cloudant
+ * @param dbName - The name of the database to create the index in
+ * @param docs - Array of docs to insert
+ * @returns {*|promise}
+ */
+var insertDocs = function(cloudant, dbName, docs) {
+  var deferred = Q.defer();
+  cloudant.use(dbName).bulk({'docs': docs}, function(err, result) {
+    if (!err) {
+      console.log('Docs inserted successfully into database <' + dbName + '>.');
+      deferred.resolve(result);
+    }
+    else {
+      console.error('Error inserting docs into database <' + dbName + '>: ' + err);
+      deferred.reject(err);
+    }
+  });
+  return deferred.promise;
+};
+
 
 /**
  * Destroys a database with the specified name.

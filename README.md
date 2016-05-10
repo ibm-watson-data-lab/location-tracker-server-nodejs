@@ -6,11 +6,26 @@ The Location Tracker Server connects to IBM Cloudant and provides RESTful APIs f
 
 ## How it works
 
-The Location Tracker app supports offline-first, Cloudant Sync, and is implemented on a database-per-user architecture. When a user registers, a specific database is created for that user and is used to track only that user's locations. In addition, the server configures continuous replication for each user-specific database into a consolidated database where all locations can be queried (location_tracker_all). See the architecture diagram below for more information.
+The Location Tracker app supports offline-first, Cloudant Sync, and is implemented on a database-per-user architecture. When a user registers, a specific database is created for that user and is used to track only that user's locations. In addition, the server configures continuous replication for each user-specific database into a consolidated database where all locations can be queried. See the architecture diagram below for more information.
 
 ### Architecture Diagram
 
-![Architecture of Location Tracker](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2ArchDiagram1Sm.png)
+![Architecture of Location Tracker](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2ArchDiagram1.png)
+
+### Cloudant
+
+When you install the Location Tracker Server three databases will be created in your Cloudant instance:
+
+![Location Tracker Cloudant](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2Cloudant.png)
+
+1. lt_locations_all - This database is used to keep track of all locations.
+2. lt_places - This database contains a list of places that the Location Tracker app will query.
+3. lt_users - This database is used to store users.
+
+The `lt_locations_all` and `lt_places` database will each have a geo index. The `lt_places` database will be populated with 50 sample places that follow the path of the "Freeway Drive" debug location setting in the iOS simulator:
+ 
+ ![Location Tracker Sample Places](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2CloudantPlaces2.png)
+
 
 ## Running on Bluemix
 
@@ -22,26 +37,24 @@ The fastest way to deploy this application to Bluemix is to click the **Deploy t
 
 ## Running Locally
 
-Get the project and change into the project directory:
+Clone this project and change into the project directory:
 
     $ git clone https://github.com/ibm-cds-labs/location-tracker-server-nodejs.git
     $ cd location-tracker-server-nodejs
 
-Local configuration is done through a `.env` file. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object. Here is an example `.env` file:
+The Node.js service requires a Cloudant instance. If you haven't already done so provision a new Cloudant instance in Bluemix. Create a .env file in the root folder of the project. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object and must include a Cloudant definition called `cloudant-location-tracker-db`. Here is an example `.env` file:
 
     VCAP_SERVICES={"cloudantNoSQLDB": [{"name": "cloudant-location-tracker-db","label": "cloudantNoSQLDB","plan": "Shared","credentials": {"username": "your-username","password": "your-password","host": "your-host","port": 443,"url": "https://your-username:your-password@your-host"}}]}
-
-**Note:**  Services created within Bluemix are automatically added to the `VCAP_SERVICES` environment variable. Therefore, no configuration is needed for Bluemix.
 
 Install the project's dependencies:
 
     $ npm install
 
-Run the project through [Foreman](https://github.com/ddollar/foreman):
+Start the Node.js server by running:
 
     $ npm start
 
-## Configuring IBM Bluemix
+### Deploying to IBM Bluemix
 
 Complete these steps first if you have not already:
 
@@ -53,9 +66,7 @@ Create a Cloudant service within Bluemix if one has not already been created:
 
     $ cf create-service cloudantNoSQLDB Shared cloudant-location-tracker-db
 
-## Deploying
-
-To deploy to Bluemix, simply:
+To deploy to Bluemix run the following command:
 
     $ cf push
 
