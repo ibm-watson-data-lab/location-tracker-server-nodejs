@@ -2,6 +2,7 @@ var cfenv = require('cfenv');
 var express = require('express');
 var cloudant = require('cloudant');
 var dotenv = require('dotenv');
+var path = require('path');
 var url = require('url');
 var bodyParser = require('body-parser');
 
@@ -37,6 +38,9 @@ app.post('/api/login', jsonParser, api.loginUser);
 
 // get the app environment from Cloud Foundry
 var appEnv = cfenv.getAppEnv();
+
+// Serve static assets
+app.use(express.static(path.join(__dirname, 'public')));
 
 // start server on the specified port and binding host
 app.listen(appEnv.port, '0.0.0.0', function() {
