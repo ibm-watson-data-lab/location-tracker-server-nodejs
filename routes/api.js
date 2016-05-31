@@ -55,33 +55,48 @@ module.exports.loginUser = function(req, res) {
   var usersDb = cloudant.use('lt_users');
   usersDb.get(req.body.username, function(err, user) {
     if (!err) {
-      var apiKey = user.api_key;
-      var apiPassword = user.api_password;
-      var locationDb = user.location_db;
-      var decipher = crypto.createDecipher(algorithm, req.body.password);
-      var decryptedApiPassword = decipher.update(apiPassword, 'hex', 'utf8');
-      decryptedApiPassword += decipher.final('utf8');
-      cloudant.auth(user.api_key, decryptedApiPassword, function(err, body, headers) {
-        if (!err) {
-          var hostname = wurl('hostname',cloudant.config.url);
-          res.json({
-            ok: true,
-            api_key: apiKey,
-            api_password: decryptedApiPassword,
-            location_db_name: locationDb,
-            location_db_host: hostname
-          });
-        }
-        else {
-          res.status(500).json({error: 'Internal Server Error'});
-        }
-      });
+      if (app.get('envoy-enabled')) {
+        res.json({
+          ok: true,
+          api_key: req.body.username,
+          api_password: sha1(req.body.username),
+          location_db_name: app.get('envoy-db-name'),
+          location_db_host: app.get('envoy-host')
+        });
+      }
+      else {
+        var apiKey = user.api_key;
+        var apiPassword = user.api_password;
+        var locationDb = user.location_db;
+        var decipher = crypto.createDecipher(algorithm, req.body.password);
+        var decryptedApiPassword = decipher.update(apiPassword, 'hex', 'utf8');
+        decryptedApiPassword += decipher.final('utf8');
+        cloudant.auth(user.api_key, decryptedApiPassword, function (err, body, headers) {
+          if (!err) {
+            var hostname = wurl('hostname', cloudant.config.url);
+            res.json({
+              ok: true,
+              api_key: apiKey,
+              api_password: decryptedApiPassword,
+              location_db_name: locationDb,
+              location_db_host: hostname
+            });
+          }
+          else {
+            res.status(500).json({error: 'Internal Server Error'});
+          }
+        });
+      }
     }
     else {
       res.status(500).json({error: 'Internal Server Error'});
     }
   });
 };
+
+function sha1(string) {
+  return crypto.createHash('sha1').update(string).digest('hex');
+}
 
 /**
  * Creates a new user along with a location database specifically for that user.
@@ -98,50 +113,72 @@ module.exports.createUser = function(req, res) {
   if (!req.body) {
     return res.sendStatus(400);
   }
-
-  // When a user attempts to register we do the following:
-  // 1. Check if the user exists with the specified id. If the user already exists then return a status of 409 to the client.
-  // 2. Create a location database for this user and this user only (database-per-user).
-  // 3. Generate an API key/password.
-  // 4. Associate the API key with the newly created location database.
-  // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
-  // 6. Configure continuous replication for the user's location database to the "All Locations" database.
   var username = req.params.id;
-  var dbName = 'lt_locations_user_' + encodeURIComponent(username);
-  checkIfUserExists(cloudant, req.params.id)
-      .then(function () {
-        return createDatabase(cloudant, dbName);
-      })
-      .then(function () {
-        return createIndexes(cloudant, dbName);
-      })
-      .then(function () {
-        return generateApiKey(cloudant);
-      })
-      .then(function (api) {
-        return applyApiKey(cloudant, dbName, api);
-      })
-      .then(function (api) {
-        return saveUser(req, cloudant, dbName, api);
-      })
-      .then(function (user) {
-        return setupReplication(cloudant, dbName, user);
-      })
-      .then(function (user) {
-        res.status(201).json({
-          ok: true,
-          id: user._id,
-          rev: user.rev
+  if (req.app.get('envoy-enabled')) {
+    checkIfUserExists(cloudant, req.params.id)
+        .then(function () {
+          return saveUser(req, cloudant);
+        })
+        .then(function (user) {
+          res.status(201).json({
+            ok: true,
+            id: user._id,
+            rev: user.rev
+          });
+        }, function (err) {
+          console.error("Error registering user.", err.toString());
+          if (err.statusCode && err.statusMessage) {
+            res.status(err.statusCode).json({error: err.statusMessage});
+          }
+          else {
+            res.status(500).json({error: 'Internal Server Error'});
+          }
         });
-      }, function (err) {
-        console.error("Error registering user.", err.toString());
-        if (err.statusCode && err.statusMessage) {
-          res.status(err.statusCode).json({error: err.statusMessage});
-        }
-        else {
-          res.status(500).json({error: 'Internal Server Error'});
-        }
-      });
+  }
+  else {
+    // When a user attempts to register we do the following:
+    // 1. Check if the user exists with the specified id. If the user already exists then return a status of 409 to the client.
+    // 2. Create a location database for this user and this user only (database-per-user).
+    // 3. Generate an API key/password.
+    // 4. Associate the API key with the newly created location database.
+    // 5. Store the user in the users database with their id, password, api key, and api password (encrypted).
+    // 6. Configure continuous replication for the user's location database to the "All Locations" database.
+    var dbName = 'lt_locations_user_' + encodeURIComponent(username);
+    checkIfUserExists(cloudant, req.params.id)
+        .then(function () {
+          return createDatabase(cloudant, dbName);
+        })
+        .then(function () {
+          return createIndexes(cloudant, dbName);
+        })
+        .then(function () {
+          return generateApiKey(cloudant);
+        })
+        .then(function (api) {
+          return applyApiKey(cloudant, dbName, api);
+        })
+        .then(function (api) {
+          return saveUser(req, cloudant, dbName, api);
+        })
+        .then(function (user) {
+          return setupReplication(cloudant, dbName, user);
+        })
+        .then(function (user) {
+          res.status(201).json({
+            ok: true,
+            id: user._id,
+            rev: user.rev
+          });
+        }, function (err) {
+          console.error("Error registering user.", err.toString());
+          if (err.statusCode && err.statusMessage) {
+            res.status(err.statusCode).json({error: err.statusMessage});
+          }
+          else {
+            res.status(500).json({error: 'Internal Server Error'});
+          }
+        });
+  }
 };
 
 /**
@@ -284,16 +321,25 @@ var applyApiKey = function(cloudant, dbName, api) {
 var saveUser = function(req, cloudant, dbName, api) {
   var deferred = Q.defer();
   // save user in database
-  var cipher = crypto.createCipher(algorithm, req.body.password);
-  var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
-  encryptedApiPassword += cipher.final('hex');
-  var user = {
-    _id: req.params.id,
-    username: req.params.id,
-    api_key: api.key,
-    api_password: encryptedApiPassword,
-    location_db: dbName
-  };
+  var user;
+  if (req.app.get('envoy-enabled')) {
+    user = {
+      _id: req.params.id,
+      username: req.params.id
+    };
+  }
+  else {
+    var cipher = crypto.createCipher(algorithm, req.body.password);
+    var encryptedApiPassword = cipher.update(api.password, 'utf8', 'hex');
+    encryptedApiPassword += cipher.final('hex');
+    user = {
+      _id: req.params.id,
+      username: req.params.id,
+      api_key: api.key,
+      api_password: encryptedApiPassword,
+      location_db: dbName
+    };
+  }
   var usersDb = cloudant.use('lt_users');
   usersDb.insert(user, user._id, function (err, body) {
     if (err) {

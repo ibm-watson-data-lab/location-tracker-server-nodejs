@@ -8,6 +8,10 @@ var bodyParser = require('body-parser');
 
 var api = require('./routes/api');
 
+var envoyEnabled = false;
+var envoyDbName;
+var envoyHost;
+
 dotenv.load();
 
 var app = express();
@@ -28,6 +32,14 @@ var app = express();
       }
     }
   }
+  if (process.env.ENVOY_ENABLED) {
+    envoyEnabled = true;
+    envoyDbName = process.env.ENVOY_DB_NAME;
+    envoyHost = process.env.ENVOY_HOST;
+  }
+  app.set('envoy-enabled', envoyEnabled);
+  app.set('envoy-db-name', envoyDbName);
+  app.set('envoy-host', envoyHost);
 })(app);
 
 var jsonParser = bodyParser.json();
