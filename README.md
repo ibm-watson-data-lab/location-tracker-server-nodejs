@@ -82,7 +82,7 @@ This data is collected from the `VCAP_APPLICATION` environment variable in IBM B
 
 ### Disabling Deployment Tracking
 
-Deployment tracking can be disabled by removing or commenting out the following line in `app.js':
+Deployment tracking can be disabled by removing or commenting out the following line in `app.js`:
 
 `require("cf-deployment-tracker-client").track();`
 
