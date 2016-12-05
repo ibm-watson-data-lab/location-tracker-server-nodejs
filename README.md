@@ -41,7 +41,7 @@ Clone this project and change into the project directory:
 
 The Node.js service requires a Cloudant instance. If you haven't already done so provision a new Cloudant instance in Bluemix. Create a .env file in the root folder of the project. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object and must include a Cloudant definition called `cloudant-location-tracker-db`. Here is an example `.env` file:
 
-    VCAP_SERVICES={"cloudantNoSQLDB": [{"name": "cloudant-location-tracker-db","label": "cloudantNoSQLDB","plan": "Shared","credentials": {"username": "your-username","password": "your-password","host": "your-host","port": 443,"url": "https://your-username:your-password@your-host"}}]}
+    VCAP_SERVICES={"cloudantNoSQLDB": [{"name": "cloudant-location-tracker-db","label": "cloudantNoSQLDB","plan": "Lite","credentials": {"username": "your-username","password": "your-password","host": "your-host","port": 443,"url": "https://your-username:your-password@your-host"}}]}
 
 Install the project's dependencies (NOTE: make sure you have a Cloudant instance and .env file configured properly before running this step):
 
