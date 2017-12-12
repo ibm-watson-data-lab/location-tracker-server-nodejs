@@ -29,7 +29,7 @@
   "homepage": "https://github.com/ibm-cds-labs/location-tracker-server",
   "dependencies": {
     "body-parser": "^1.11.0",
-    "cf-deployment-tracker-client": "^0.x",
+    "metrics-tracker-client": "*",
     "cfenv": "1.0.x",
     "cloudant": "^1.3.0",
     "commander": "^2.6.0",
