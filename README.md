@@ -22,15 +22,15 @@ The `lt_locations_all` and `lt_places` database will each be created with a geo 
  
  ![Location Tracker Sample Places](http://developer.ibm.com/clouddataservices/wp-content/uploads/sites/47/2016/05/locationTracker2CloudantPlaces2.png)
 
-Follow the instructions below to get the Location Tracker Server up and running locally or on Bluemix. Once you are finished follow the instructions to download and run the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-client-swift).
+Follow the instructions below to get the Location Tracker Server up and running locally or on IBM Cloud. Once you are finished follow the instructions to download and run the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-client-swift).
 
-## Running on Bluemix
+## Running on IBM Cloud
 
-The fastest way to deploy this application to Bluemix is to click the **Deploy to Bluemix** button below.
+The fastest way to deploy this application to IBM Cloud is to click the **Deploy to IBM Cloud** button below.
 
-[![Deploy to Bluemix](https://deployment-tracker.mybluemix.net/stats/80a8bacd2fb80421a53e8d18fdbc64f1/button.svg)](https://bluemix.net/deploy?repository=https://github.com/ibm-cds-labs/location-tracker-server-nodejs)
+[![Deploy to IBM Cloud](https://metrics-tracker.mybluemix.net/stats/bdba26b32f399450eba0f0583215d475/button.svg)](https://bluemix.net/deploy?repository=https://github.com/ibm-watson-data-lab/location-tracker-server-nodejs)
 
-**Don't have a Bluemix account?** If you haven't already, you'll be prompted to sign up for a Bluemix account when you click the button.  Sign up, verify your email address, then return here and click the the **Deploy to Bluemix** button again. Your new credentials let you deploy to the platform and also to code online with Bluemix and Git. If you have questions about working in Bluemix, find answers in the [Bluemix Docs](https://www.ng.bluemix.net/docs/).
+**Don't have an IBM Cloud account?** If you haven't already, you'll be prompted to sign up for a IBM Cloud account when you click the button.  Sign up, verify your email address, then return here and click the the **Deploy to IBM Cloud** button again. Your new credentials let you deploy to the platform and also to code online with IBM Cloud and Git. If you have questions about working in IBM Cloud, find answers in the [IBM Cloud Docs](https://www.ng.bluemix.net/docs/).
 
 ## Running Locally
 
@@ -39,53 +39,6 @@ Clone this project and change into the project directory:
     $ git clone https://github.com/ibm-cds-labs/location-tracker-server-nodejs.git
     $ cd location-tracker-server-nodejs
 
-The Node.js service requires a Cloudant instance. If you haven't already done so provision a new Cloudant instance in Bluemix. Create a .env file in the root folder of the project. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object and must include a Cloudant definition called `cloudant-location-tracker-db`. Here is an example `.env` file:
+The Node.js service requires a Cloudant instance. If you haven't already done so provision a new Cloudant instance in IBM Cloud. Create a .env file in the root folder of the project. One environment variable, `VCAP_SERVICES`, is needed in order to configure your local development environment. The value of the `VCAP_SERVICES` is a string representation of a JSON object and must include a Cloudant definition called `cloudant-location-tracker-db`. Here is an example `.env` file:
 
     VCAP_SERVICES={"cloudantNoSQLDB": [{"name": "cloudant-location-tracker-db","label": "cloudantNoSQLDB","plan": "Lite","credentials": {"username": "your-username","password": "your-password","host": "your-host","port": 443,"url": "https://your-username:your-password@your-host"}}]}
-
-Install the project's dependencies (NOTE: make sure you have a Cloudant instance and .env file configured properly before running this step):
-
-    $ npm install
-
-Start the Node.js server by running:
-
-    $ npm start
-
-### Deploying to IBM Bluemix
-
-You can deploy the Location Tracker Server to Bluemix from your local instance using the Cloud Foundry command line interface. If you haven't already, follow these steps to get the Cloud Foundry CLI installed and configured:
-
-1. [Install the Cloud Foundry command line interface.](https://www.ng.bluemix.net/docs/#starters/install_cli.html)
-2. Follow the instructions at the above link to connect to Bluemix.
-3. Follow the instructions at the above link to log in to Bluemix.
-
-Create a Cloudant service within Bluemix if one has not already been created:
-
-    $ cf create-service cloudantNoSQLDB Shared cloudant-location-tracker-db
-
-To deploy to Bluemix run the following command:
-
-    $ cf push
-
-**Note:** You may notice that Bluemix assigns a URL to your app containing a random word. This is defined in the `manifest.yml` file. The `host` key in this file contains the value `cloudant-location-tracker-${random-word}`. The random word is there to ensure that multiple people deploying the Location Tracker application to Bluemix do not run into naming collisions. However, this will cause a new route to be created for your application each time you deploy to Bluemix. To prevent this from happening, replace `${random-word}` with a hard coded (but unique) value.
-
-## Privacy Notice
-
-The Location Tracker sample web application includes code to track deployments to [IBM Bluemix](https://www.bluemix.net/) and other Cloud Foundry platforms. The following information is sent to a [Deployment Tracker](https://github.com/cloudant-labs/deployment-tracker) service on each deployment:
-
-* Application Name (`application_name`)
-* Space ID (`space_id`)
-* Application Version (`application_version`)
-* Application URIs (`application_uris`)
-
-This data is collected from the `VCAP_APPLICATION` environment variable in IBM Bluemix and other Cloud Foundry platforms. This data is used by IBM to track metrics around deployments of sample applications to IBM Bluemix to measure the usefulness of our examples, so that we can continuously improve the content we offer to you. Only deployments of sample applications that include code to ping the Deployment Tracker service will be tracked.
-
-### Disabling Deployment Tracking
-
-Deployment tracking can be disabled by removing or commenting out the following line in `app.js`:
-
-`require("cf-deployment-tracker-client").track();`
-
-## License
-
-Licensed under the [Apache License, Version 2.0](LICENSE.txt).
