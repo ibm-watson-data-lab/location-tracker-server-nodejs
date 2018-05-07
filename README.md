@@ -1,3 +1,5 @@
+:no_entry_sign: This project is no longer maintained
+
 # Location Tracker Server
 
 The Location Tracker Server is a Node.js application to be used in conjunction with the [Location Tracker app](https://github.com/ibm-cds-labs/location-tracker-client-swift).
